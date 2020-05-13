@@ -2,7 +2,7 @@ using System.Linq;
 
 namespace AdventOfCode.Y2015 {
     class Day01 : Solution {
-        public Day01 () : base(1, 2015, "Not Quite Lisp", "Y2015/input01") {
+        public Day01 () : base(1, 2015, "Not Quite Lisp") {
         }
 
         public override string SolvePart1 () {
