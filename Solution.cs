@@ -18,7 +18,7 @@ namespace AdventOfCode {
         }
         
         public string Solve () => $"---- {this.Year}-{this.Day}: {this.Title} ----\n{this.SolvePart1()}\n{this.SolvePart2()}";
-        public abstract string SolvePart1 ();
-        public abstract string SolvePart2 ();
+        public virtual string SolvePart1 () => "Not yet implemented.";
+        public virtual string SolvePart2 () => "Not yet implemented.";
     }
 }
