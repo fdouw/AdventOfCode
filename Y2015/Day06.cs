@@ -38,19 +38,47 @@ namespace AdventOfCode.Y2015 {
                 }
             }
             return $"{lightsOn}";
-
-            (int xStart, int yStart, int xEnd, int yEnd) GetCoords(string[] words) {
-                string[] coord = words[^3].Split(',');
-                int xStart = Int32.Parse(coord[0]);
-                int yStart = Int32.Parse(coord[1]);
-                coord = words[^1].Split(',');
-                int xEnd = Int32.Parse(coord[0]);
-                int yEnd = Int32.Parse(coord[1]);
-                return (xStart, yStart, xEnd, yEnd);
-            }
         }
 
-        // public override string SolvePart2 () {
-        // }
+        public override string SolvePart2 () {
+            int[] lights = new int[1_000_000];
+
+            foreach (string line in Input) {
+                string[] words = line.Split(' ');
+                // There are only three options: set to "toggle" by default, use if-block for alternatives
+                int delta = 2;
+                if (words[0] == "turn") {
+                    delta = (words[1] == "on") ? 1 : -1;
+                }
+                var coords = GetCoords(words);
+                for (int y = coords.yStart; y <= coords.yEnd; y++) {
+                    int Y = 1000 * y;
+                    for (int x = coords.xStart; x <= coords.xEnd; x++) {
+                        lights[Y + x] += delta;
+                        if (lights[Y + x] < 0) {    // Guard lower bound
+                            lights[Y + x] = 0;
+                        }
+                    }
+                }
+            }
+
+            int brightness = 0;
+            foreach (int light in lights) {
+                brightness += light;
+            }
+            return $"{brightness}";
+        }
+
+        // Helper function: extracts the coordinates from a single entry, which should be split on
+        // spaces.
+        private static (int xStart, int yStart, int xEnd, int yEnd) GetCoords(string[] words) {
+            string[] coord = words[^3].Split(',');
+            int xStart = Int32.Parse(coord[0]);
+            int yStart = Int32.Parse(coord[1]);
+            coord = words[^1].Split(',');
+            int xEnd = Int32.Parse(coord[0]);
+            int yEnd = Int32.Parse(coord[1]);
+            return (xStart, yStart, xEnd, yEnd);
+        }
     }
 }
