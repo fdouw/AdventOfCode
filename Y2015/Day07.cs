@@ -61,9 +61,6 @@ namespace AdventOfCode.Y2015 {
         public override string SolvePart2 () {
             CreateNetwork();
             ushort tmp = (ushort)wires["a"].Read();
-            foreach (var w in wires.Values) {
-                w.Reset();
-            }
             CreateNetwork();
             wires["b"].Input = new ConstantSignal(tmp);
             return wires["a"].Read().ToString();
@@ -74,9 +71,6 @@ namespace AdventOfCode.Y2015 {
     abstract class Node {
         protected ushort? cache = null;
         internal abstract ushort? Read();
-        internal virtual void Reset () {
-            cache = null;
-        }
     }
 
     // Represents an (output) wire
@@ -87,12 +81,6 @@ namespace AdventOfCode.Y2015 {
             this.Name = name;
         }
         internal override ushort? Read() => cache ?? (cache = Input.Read());
-        internal override void Reset () {
-            if (cache != null) {
-                base.Reset();
-                Input?.Reset();
-            }
-        }
     }
 
     // Represents an input signal
@@ -149,14 +137,6 @@ namespace AdventOfCode.Y2015 {
                 }
             }
             return cache;
-        }
-
-        internal override void Reset () {
-            if (cache != null) {
-                cache = null;
-                left?.Reset();
-                right?.Reset();
-            }
         }
     }
 }
