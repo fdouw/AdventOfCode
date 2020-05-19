@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace AdventOfCode.Y2015 {
     class Day07 : Solution {
+        Dictionary<string,Wire> wires = new Dictionary<string, Wire>();
+
         public Day07 () : base(7, 2015, "Some Assembly Required") {
         }
 
-        public override string SolvePart1 () {
-            Dictionary<string,Wire> wires = new Dictionary<string, Wire>();
+        private void CreateNetwork () {
+            wires.Clear();
 
             // First sweep: only add the wires
             foreach (string line in Input) {
@@ -39,9 +41,6 @@ namespace AdventOfCode.Y2015 {
                 }
             }
 
-            // Question asks for wire a:
-            return wires["a"].Read().ToString();
-
             // Returns a node based on label, assuming all the wires have been identified
             // and if it is not a known wire, it must be numerical
             Node GetNode (string label) {
@@ -54,14 +53,30 @@ namespace AdventOfCode.Y2015 {
             }
         }
 
-        // public override string SolvePart2 () {
-        // }
+        public override string SolvePart1 () {
+            CreateNetwork();
+            return wires["a"].Read().ToString();
+        }
+
+        public override string SolvePart2 () {
+            CreateNetwork();
+            ushort tmp = (ushort)wires["a"].Read();
+            foreach (var w in wires.Values) {
+                w.Reset();
+            }
+            CreateNetwork();
+            wires["b"].Input = new ConstantSignal(tmp);
+            return wires["a"].Read().ToString();
+        }
     }
 
     // Base class for the various wires, signals, and gates
     abstract class Node {
         protected ushort? cache = null;
         internal abstract ushort? Read();
+        internal virtual void Reset () {
+            cache = null;
+        }
     }
 
     // Represents an (output) wire
@@ -72,6 +87,12 @@ namespace AdventOfCode.Y2015 {
             this.Name = name;
         }
         internal override ushort? Read() => cache ?? (cache = Input.Read());
+        internal override void Reset () {
+            if (cache != null) {
+                base.Reset();
+                Input?.Reset();
+            }
+        }
     }
 
     // Represents an input signal
@@ -128,6 +149,14 @@ namespace AdventOfCode.Y2015 {
                 }
             }
             return cache;
+        }
+
+        internal override void Reset () {
+            if (cache != null) {
+                cache = null;
+                left?.Reset();
+                right?.Reset();
+            }
         }
     }
 }
