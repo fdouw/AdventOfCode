@@ -4,30 +4,35 @@ using System.Collections.Generic;
 
 namespace AdventOfCode.Y2015 {
     class Day09 : Solution {
+        private WeightedGraph graph = new WeightedGraph();
+
         public Day09 () : base(9, 2015, "All in a Single Night") {
-        }
-
-        public override string SolvePart1 () {
-            WeightedGraph graph = new WeightedGraph();
-
-            // Build the graph
+            // We only need to build the graph once
             foreach (string line in Input) {
                 string[] data = line.Split(' ');
                 graph.AddEdge(data[0], data[2], Int32.Parse(data[^1]));
             }
+        }
 
+        public override string SolvePart1 () {
             // Use DFS to find all Hamiltonian paths, remember the shortest length.
             var seen = new HashSet<string>(graph.Count);
             int minDist = Int32.MaxValue;
             foreach (string v in graph.GetVertices()) {
                 minDist = DfsHamiltonian(graph, v, seen, 0, minDist);
             }
-
             return $"{minDist}";
         }
 
-        // public override string SolvePart2 () {
-        // }
+        public override string SolvePart2 () {
+            // Use DFS to find all Hamiltonian paths, remember the shortest length.
+            var seen = new HashSet<string>(graph.Count);
+            int maxDist = 0;
+            foreach (string v in graph.GetVertices()) {
+                maxDist = DfsHamiltonianMax(graph, v, seen, 0, maxDist);
+            }
+            return $"{maxDist}";
+        }
 
         /* Recursively looks for a Hamiltonian path using DFS and returns the minimal path length.
          * graph: WeightedGraph to search through
@@ -56,6 +61,25 @@ namespace AdventOfCode.Y2015 {
             }
             seen.Remove(v);
             return minDist;
+        }
+
+        // Same as DfsHamiltonian, but looking for the maximal path length.
+        private static int DfsHamiltonianMax (WeightedGraph graph, string v, HashSet<string> seen, int dist, int maxDist) {
+            seen.Add(v);
+            if (seen.Count == graph.Count) {
+                // End of the line: we've passed all vertices!
+                maxDist = (dist > maxDist) ? dist : maxDist;
+            }
+            else {
+                // Keep looking
+                foreach (string w in graph.GetNeighbours(v)) {
+                    if (!seen.Contains(w)) {
+                        maxDist = DfsHamiltonianMax(graph, w, seen, dist + graph.GetDistance(v,w), maxDist);
+                    }
+                }
+            }
+            seen.Remove(v);
+            return maxDist;
         }
     }
 
