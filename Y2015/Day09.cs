@@ -39,7 +39,10 @@ namespace AdventOfCode.Y2015 {
          */
         private static int DfsHamiltonian (WeightedGraph graph, string v, HashSet<string> seen, int dist, int minDist) {
             seen.Add(v);
-            if (seen.Count == graph.Count) {
+            if (dist >= minDist) {
+                // No point in looking further
+            }
+            else if (seen.Count == graph.Count) {
                 // End of the line: we've passed all vertices!
                 minDist = (dist < minDist) ? dist : minDist;
             }
