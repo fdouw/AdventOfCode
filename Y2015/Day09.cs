@@ -16,42 +16,44 @@ namespace AdventOfCode.Y2015 {
                 graph.AddEdge(data[0], data[2], Int32.Parse(data[^1]));
             }
 
-            // Try each vertex as a starting point.
-            // Build a Hamiltonian path by connecting the shortest available edge each time.
-            // Then pray that the shortest of these is in fact the shortest Hamiltonian path.
+            // Use DFS to find all Hamiltonian paths, remember the shortest length.
+            var seen = new HashSet<string>(graph.Count);
             int minDist = Int32.MaxValue;
             foreach (string v in graph.GetVertices()) {
-                System.Console.WriteLine($"Testing starting vertex {v}");
-                HashSet<string> marked = new HashSet<string>();
-                string curVertex = v;
-                string prevVertex = null;
-                int curDist = 0;
-
-                // Walk through the graph, starting at v
-                // Implicitly assuming that graph has a Hamiltonian path starting at v
-                while (curVertex != prevVertex) {
-                    System.Console.WriteLine($"\tCurrent vertex: {curVertex}");
-                    prevVertex = curVertex;
-                    foreach (string w in graph.GetNeighboursSorted(curVertex)) {
-                        if (!marked.Contains(w)) {
-                            marked.Add(w);
-                            curDist += graph.GetDistance(curVertex, w);
-                            curVertex = w;
-                            break;
-                        }
-                    }
-                }
-                if (marked.Count == graph.Count) {  // Make sure the path is Hamiltonian
-                    if (curDist < minDist) {
-                        minDist = curDist;
-                    }
-                }
+                minDist = DfsHamiltonian(graph, v, seen, 0, minDist);
             }
+
             return $"{minDist}";
         }
 
         // public override string SolvePart2 () {
         // }
+
+        /* Recursively looks for a Hamiltonian path using DFS and returns the minimal path length.
+         * graph: WeightedGraph to search through
+         * v: current vertex, from which to search further
+         * seen: set of vertices in the path up to, but excluding, v
+         * dist: length of the path up to v
+         * minDist: currently the best guess for the shortest total path length
+         * returns: updated guess for minDist
+         */
+        private static int DfsHamiltonian (WeightedGraph graph, string v, HashSet<string> seen, int dist, int minDist) {
+            seen.Add(v);
+            if (seen.Count == graph.Count) {
+                // End of the line: we've passed all vertices!
+                minDist = (dist < minDist) ? dist : minDist;
+            }
+            else {
+                // Keep looking
+                foreach (string w in graph.GetNeighbours(v)) {
+                    if (!seen.Contains(w)) {
+                        minDist = DfsHamiltonian(graph, w, seen, dist + graph.GetDistance(v,w), minDist);
+                    }
+                }
+            }
+            seen.Remove(v);
+            return minDist;
+        }
     }
 
     class WeightedGraph {
