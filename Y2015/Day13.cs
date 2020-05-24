@@ -8,65 +8,160 @@ namespace AdventOfCode.Y2015 {
         }
 
         public override string SolvePart1 () {
-            var links = new Dictionary<string, Dictionary<string, int>>();
-
-            // Read the individual (one-way) links
-            foreach (string line in Input) {
-                string[] words = line.Split(' ');
-                if (!links.ContainsKey(words[0])) {
-                    links.Add(words[0], new Dictionary<string, int>());
-                }
-                int sign = (words[2] == "lose") ? -1 : 1;
-                int value = Int32.Parse(words[3]);
-                string other = words[^1].Substring(0,words[^1].Length-1);   // Remove full stop at the end
-                links[words[0]].Add(other, sign * value);
-            }
-
             // Build a list of two-way links
-            var bilinks = new Dictionary<(string, string), int>(links.Keys.Count);
-            var queue = new Queue<string>(links.Keys);
-            while (queue.Count > 0) {
-                string person = queue.Dequeue();
-                foreach (string other in queue) {
-                    bilinks.Add((person,other), links[person][other] + links[other][person]);
-                }
-            }
-
-            // Order links by value, to prioritise high value pairs
-            // Add links from high to low value, but only if:
-            // - both people are unseated, or
-            // - 1 is unseated, the other has a seat available, or
-            // - the link is the last link, closing the circle
-            var sortedLinks = from entry in bilinks orderby entry.Value descending select entry;
-            var people = new Dictionary<string, int>(links.Keys.Count); // Keeps track of the number of neighbours
-            foreach (string person in links.Keys) {
-                people.Add(person, 0);
-            }
-            int totalWeight = 0;
-            int totalLinks = 0;
-            foreach (var link in sortedLinks) {
-                string a = link.Key.Item1;
-                string b = link.Key.Item2;
-                if (people[a] + people[b] < 2) {
-                    // At most one of the 2 can be seated, unless we are at the end
-                    totalWeight += link.Value;
-                    people[a]++;
-                    people[b]++;
-                    totalLinks += 2;
-                }
-                else if (totalLinks == people.Count && people[a] == 1 && people[b] == 1) {
-                    // This is the closing link
-                    totalWeight += link.Value;
-                    // No need to update counts; we're done
-                    break;
-                }
-            }
-
-            // Not sure if totalWeight is guaranteed to be optimal
-            return $"{totalWeight}";
+            PairLinkCollection pairs = ReadPairLinks();
+            return $"{MaxCircleValue(pairs)}";
         }
 
-        // public override string SolvePart2 () {
-        // }
+        public override string SolvePart2 () {
+            // Build a list of two-way links
+            PairLinkCollection pairs = ReadPairLinks();
+
+            // Add myself
+            string[] people = pairs.Persons.ToArray();  // Copy the list first, because the loop will alter it
+            foreach (string other in people) {
+                pairs.Add(new PairLink("Myself", other, 0));
+            }
+
+            return $"{MaxCircleValue(pairs)}";
+        }
+
+        private PairLinkCollection ReadPairLinks () {
+            var pairs = new PairLinkCollection();
+            PairLink pairlink;
+            foreach (string line in Input) {
+                string[] words = line.Split(' ');
+                int sign = (words[2] == "lose") ? -1 : 1;
+                int value = Int32.Parse(words[3]);
+                string person = words[0];
+                string other = words[^1].Substring(0, words[^1].Length-1);   // Remove full stop at the end
+                if ((pairlink = pairs.GetPairLink(person, other)) != null) {
+                    pairlink.weight += sign * value;
+                }
+                else {
+                    pairs.Add(new PairLink(person, other, sign * value));
+                }
+            }
+            return pairs;
+        }
+
+        private static int MaxCircleValue (PairLinkCollection pairs) {
+            // Do a DFS for the optimal path. Because they're sitting in a circle, it doesn't matter
+            // with who we start. Just make sure to check all the links.
+            int maxValue = 0;
+            string root = pairs.Persons.First();
+            int maxDepth = pairs.GetLinks(root).Count;  // Assuming root is paired with every other person
+            foreach (PairLink link in pairs.GetLinks(root)) {
+                maxValue = MaxPathValue(pairs, link, link.GetOtherPerson(root), root, maxDepth, maxValue);
+            }
+            return maxValue;
+        }
+
+        private static int MaxPathValue (PairLinkCollection allLinks, PairLink curLink, string curPerson, string root, int maxDepth, int curMaxValue) {
+            if (curLink.Length == maxDepth) {
+                // Found the last link, tally up the values
+                int val = curLink.ChainWeight + allLinks.GetPairLink(curPerson, root).weight;
+                return (val > curMaxValue) ? val : curMaxValue;
+            }
+            else {
+                foreach (PairLink link in allLinks.GetLinks(curPerson)) {
+                    string other = link.GetOtherPerson(curPerson);
+                    if (!curLink.ChainContainsPerson(other)) {
+                        curLink = curLink.AttachLink(link);
+                        curMaxValue = MaxPathValue(allLinks, curLink, other, root, maxDepth, curMaxValue);
+                        curLink = curLink.Detach();
+                    }
+                }
+                return curMaxValue;
+            }
+        }
+
+        private class PairLink {
+            internal int Length { get => 1 + (previous?.Length ?? 0); }
+            internal int ChainWeight { get => weight + (previous?.ChainWeight ?? 0); }
+
+            internal string personA;
+            internal string personB;
+            internal int weight;
+            internal PairLink previous;
+            internal PairLink next;
+
+            internal PairLink (string a, string b, int w, PairLink prev = null, PairLink nxt = null) {
+                personA = a;
+                personB = b;
+                weight = w;
+                previous = prev;
+                next = nxt;
+            }
+
+            // Attaches a new link to the chain
+            internal PairLink AttachLink (PairLink other) {
+                next = other;
+                other.previous = this;
+                return other;
+            }
+
+            // Detaches this link from the preceding chain.
+            // NB: consecutive links remain attached to this link, not to the chain!
+            // Returns the previous link, or null if this was the root.
+            internal PairLink Detach () {
+                PairLink tmp = previous;
+                if (previous != null) {
+                    tmp.next = null;
+                    previous = null;
+                }
+                return tmp;
+            }
+
+            internal string GetOtherPerson (string person) {
+                if (person == personA) {
+                    return personB;
+                }
+                else if (person == personB) {
+                    return personA;
+                }
+                else {
+                    throw new Exception($"Person not in this link: {person} (Link: {personA}–{personB})");
+                }
+            }
+
+            internal bool ChainContainsLink (PairLink other) {
+                return other == this || (previous?.ChainContainsLink(other) ?? false);
+            }
+
+            internal bool ChainContainsPerson(string p) {
+                return (p == personA || p == personB || (previous?.ChainContainsPerson(p) ?? false));
+            }
+        }
+
+        private class PairLinkCollection {
+            internal IEnumerable<string> Persons { get => links.Keys; }
+
+            Dictionary<string,List<PairLink>> links = new Dictionary<string,List<PairLink>>();
+            
+            internal void Add(PairLink newLink) {
+                if (!links.ContainsKey(newLink.personA)) {
+                    links.Add(newLink.personA, new List<PairLink>());
+                }
+                if (!links.ContainsKey(newLink.personB)) {
+                    links.Add(newLink.personB, new List<PairLink>());
+                }
+                links[newLink.personA].Add(newLink);
+                links[newLink.personB].Add(newLink);
+            }
+
+            internal List<PairLink> GetLinks (string person) => links[person];
+
+            internal PairLink GetPairLink (string personA, string personB) {
+                if (links.ContainsKey(personA)) {
+                    foreach (PairLink pair in links[personA]) {
+                        if (pair.personA == personB || pair.personB == personB) {
+                            return pair;
+                        }
+                    }
+                }
+                return null;
+            }
+        }
     }
 }
