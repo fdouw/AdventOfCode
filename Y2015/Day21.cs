@@ -38,9 +38,13 @@ namespace AdventOfCode.Y2015 {
             bossArmour = Int32.Parse(Input[2].Split(" ")[^1]);
         }
 
-        public override string SolvePart1 () {
-            // Brute force, as I don't know how to order this efficiently on cost
-            int optimalCost = Int32.MaxValue;
+        public override string SolvePart1 () => $"{computeCost(true)}";
+
+        public override string SolvePart2 () => $"{computeCost(false)}";
+
+        /* Returns the cost of playing: optimal cost for winning if <optimal> is true, worst cost for losing if <optimal> is false. */
+        private int computeCost (bool optimal) {
+            int finalCost = optimal ? Int32.MaxValue : 0;
             foreach (Item w in weapons) {
                 foreach (Item a in armour) {
                     for (int i = 1; i < rings.Length; i++) {
@@ -68,60 +72,23 @@ namespace AdventOfCode.Y2015 {
 
                             // Player goes first: if turnsNeeded == turnsAlive, then player just defeats
                             // the boss.
-                            if (turnsNeeded <= turnsAlive) {
+                            if (optimal && turnsNeeded <= turnsAlive) {
                                 int cost = w.Cost + a.Cost + r1.Cost + r2.Cost;
-                                if (cost < optimalCost) {
-                                    optimalCost = cost;
+                                if (cost < finalCost) {
+                                    finalCost = cost;
+                                }
+                            }
+                            else if (!optimal && turnsNeeded > turnsAlive) {
+                                int cost = w.Cost + a.Cost + r1.Cost + r2.Cost;
+                                if (cost > finalCost) {
+                                    finalCost = cost;
                                 }
                             }
                         }
                     }
                 }
             }
-            return $"{optimalCost}";
-        }
-
-        public override string SolvePart2 () {
-            // Brute force, as I don't know how to order this efficiently on cost
-            int worstCost = 0;
-            foreach (Item w in weapons) {
-                foreach (Item a in armour) {
-                    for (int i = 1; i < rings.Length; i++) {
-                        for (int j = 0; j < i; j++) {
-                            Item r1 = rings[i];
-                            Item r2 = rings[j];
-                            int damage = w.Damage + r1.Damage + r2.Damage;
-                            int armour = a.Armour + r1.Armour + r2.Armour;
-
-                            int offence = damage - bossArmour;
-                            int defence = bossDamage - armour;
-
-                            // Attacker always does at least 1 damage, which translates to <hitpoints> turns needed
-                            int turnsNeeded = (offence > 0) ? bossHitPts / offence: bossHitPts;
-                            int turnsAlive = (defence > 0) ? 100 / defence : 100;   // 100 hitpoints is given in problem
-
-                            // If the division has a remainder, it means some hitpoints < attack are
-                            // left after the last attack. This means one more attack is needed.
-                            if (offence != 0 && bossHitPts % offence > 0) {
-                                turnsNeeded++;
-                            }
-                            if (defence != 0 && 100 % defence > 0) {
-                                turnsAlive++;
-                            }
-
-                            // Player goes first: if turnsNeeded == turnsAlive, then player just defeats
-                            // the boss.
-                            if (turnsNeeded > turnsAlive) {
-                                int cost = w.Cost + a.Cost + r1.Cost + r2.Cost;
-                                if (cost > worstCost) {
-                                    worstCost = cost;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return $"{worstCost}";
+            return finalCost;
         }
     }
 
