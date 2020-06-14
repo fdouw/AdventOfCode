@@ -54,56 +54,36 @@ namespace AdventOfCode.Y2016 {
                 }
                 int blocks = Int32.Parse(instruct.Substring(1));
 
-                switch (dir) {
-                    case 0:
-                        for (int i=0; i<blocks; i++) {
-                            y--;
-                            if (visited.Contains((x,y))) {
-                                return $"{Abs(x) + Abs(y)}";
-                            }
-                            else {
-                                visited.Add((x,y));
-                            }
-                        }
-                        break;
-                    case 1:
-                        for (int i=0; i<blocks; i++) {
-                            x++;
-                            if (visited.Contains((x,y))) {
-                                return $"{Abs(x) + Abs(y)}";
-                            }
-                            else {
-                                visited.Add((x,y));
-                            }
-                        }
-                        break;
-                    case 2:
-                        for (int i=0; i<blocks; i++) {
-                            y++;
-                            if (visited.Contains((x,y))) {
-                                return $"{Abs(x) + Abs(y)}";
-                            }
-                            else {
-                                visited.Add((x,y));
-                            }
-                        }
-                        break;
-                    case 3:
-                        for (int i=0; i<blocks; i++) {
-                            x--;
-                            if (visited.Contains((x,y))) {
-                                return $"{Abs(x) + Abs(y)}";
-                            }
-                            else {
-                                visited.Add((x,y));
-                            }
-                        }
-                        break;
-                    default: throw new Exception($"Invalid direction: {dir}");
+                int step = (dir == 0 || dir == 3) ? -1 : 1;
+                bool horizontal = (dir == 1 || dir == 3);
+                if (Walk(blocks, step, horizontal)) {
+                    return $"{Abs(x) + Abs(y)}";
                 }
             }
 
             return "No solution found";
+
+            // Walk <blocks> blocks, or less if we revisit a place.
+            // Updates x (iff <horizontal> is true), or y. In case of a revisit, x,y is the revisited place.
+            // <step> = ±1, to indicate the direction along the axis.
+            // Returns true iff we revisit a place.
+            bool Walk (int blocks, int step, bool horizontal) {
+                for (int i=0; i<blocks; i++) {
+                    if (horizontal) {
+                        x += step;
+                    }
+                    else {
+                        y += step;
+                    }
+                    if (visited.Contains((x,y))) {
+                        return true;
+                    }
+                    else {
+                        visited.Add((x,y));
+                    }
+                }
+                return false;
+            }
         }
 
         private static int Abs (int x) => (x < 0) ? -x : x;
